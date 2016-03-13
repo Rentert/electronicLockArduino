@@ -1,5 +1,6 @@
 #include <TimerOne.h>
 #include <SoftwareSerial.h>
+#include <EEPROM2.h>
 
 SoftwareSerial RFID(3, 2); // RX and TX
 
@@ -12,26 +13,10 @@ int button = 0;
 
 int keyLen = 14;
 
-int numb = 0;
-
 int sr[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-class Lock {
-  public:
-    void lock() {
-      flag = true;
-    }
-     void unLock() {
-      flag = false;
-    }
-    bool isLock() {
-      return flag;
-    }
-  private:
-    bool flag;
-};
-
-Lock lock;
+uint8_t memory [200];
+uint8_t len = 0;
 
 long getMillisecond(float quantityOfSecond) {
   return 1000000 * quantityOfSecond;
@@ -39,7 +24,6 @@ long getMillisecond(float quantityOfSecond) {
 
 void playNote(int pin, int note,long period, int tempo, void (*isr)()) {
   flag = true;
-  lock.lock();
   Timer1.setPeriod(period);
   
   Timer1.attachInterrupt(isr);
@@ -58,8 +42,6 @@ void playNote(int pin, int note,long period, int tempo, void (*isr)()) {
   }
   
   Timer1.detachInterrupt(); 
-  lock.unLock();
-  
 }
 
 void offPlay()
@@ -69,7 +51,7 @@ void offPlay()
 
 
 void setup()
-{
+{  
   RFID.begin(9600);    // start serial to RFID reader
   Serial.begin(9600);  // start serial to PC 
   pinMode(speaker, OUTPUT);
@@ -89,21 +71,21 @@ void setup()
 
 void loop()
 {
-  if(lock.isLock()) {
-    digitalWrite(diodeB, !digitalRead(button));
-    
-    if (RFID.available() > 0) {
-      if(numb == keyLen) {
-        numb = 0;
-        
-        digitalWrite(diodeB, LOW);
-        playNote(speaker,1000, getMillisecond(1), 100, offPlay);
-        digitalWrite(diodeB, HIGH);
-        
-       }
-       
-       sr[numb] = RFID.read();
-       numb++;
+    if (RFID.available() >= 14) {
+      int summ = 0;
+      for (int i = 0; i < 14; ++i) {
+        //summ += RFID.read();
+        Serial.print(RFID.read(), DEC);
+        Serial.print(' ');
+      }
+      Serial.print('\n');
+      digitalWrite(summ < 100? diodeB : diodeA , LOW);
+      playNote(speaker, 600, getMillisecond(0.5), 100, offPlay);
+      while(RFID.available() > 0) {
+        RFID.read();
+        delay(60);
+      }
+      digitalWrite(diodeB, HIGH);
+      digitalWrite(diodeA, HIGH);
     }
-  }
 }
