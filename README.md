@@ -1,1 +1,1 @@
-Электронный замок на базе ардуино - код
+My Student project. Electronic lock on arduino. 
